@@ -16,7 +16,7 @@ The server listens on **http://localhost:3002**.
 ## PostgreSQL admin accounts
 
 All database access uses PostgreSQL database **aatman**. Admin password login
-is not yet exposed as an API endpoint.
+is available at `POST /api/v1/auth/login`.
 
 1. Install/start PostgreSQL and create the database once: `createdb -U postgres aatman`.
 2. Set `PGHOST`, `PGPORT`, `PGDATABASE=aatman`, `PGUSER`, and `PGPASSWORD` in `.env`
@@ -38,17 +38,33 @@ time zones. Accounts include status, verification timestamps, password-change ti
 failed-login count, temporary lock expiry, and last-login time. Verification timestamps
 start empty. `assigned_by` may be null for operator-created accounts.
 
-For the login implementation, add:
+### Admin API
 
-- Password verification with constant-time hash comparison, generic failure messages,
-  per-IP/account rate limits, and temporary lockouts.
-- MFA for administrators, preferably passkeys or authenticator codes.
-- Revocable sessions with hashed random tokens, expiry, logout, and secure HttpOnly cookies.
-- Password reset and email verification using expiring, single-use, hashed tokens.
-- Permission checks on every protected endpoint, plus an audit log for login events,
-  account changes, and role changes. Seeded roles alone do not enforce permissions.
+Configure `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` in `.env`.
+Registration and login require HTTP Basic Auth over HTTPS in deployment.
 
-The tracking columns support these features; the scripts do not implement them yet.
+- `POST /api/v1/auth/register`: JSON `name`, `email`, `phone` (with country code),
+  `password` (12–128 characters). Creates an `admin`, not a `super_admin`.
+- `POST /api/v1/auth/login`: JSON `email`, `password`. Returns `token`,
+  `tokenType: "Bearer"`, `expiresIn: 28800`, and safe `user` fields.
+- `GET /api/v1/auth/me`: use `Authorization: Bearer <token>`.
+- `POST /api/v1/auth/logout`: same Bearer header; revokes the session, returns 204.
+
+Login permits 20 requests per IP per 15 minutes. Five incorrect passwords lock
+an account for 15 minutes. Invalid, disabled, locked, and unknown accounts return
+the same 401 message. Only token hashes are stored. Sessions expire after eight
+hours and are invalid after an account is disabled or its password-change timestamp
+advances. Registration uses a transaction, stores scrypt hashes, and returns 409
+for duplicate email or phone. Previously stored plaintext passwords are rejected;
+those accounts need a trusted password reset or recreation.
+
+Run `npm run db:setup` to add `admin_sessions` to an existing installation.
+`npm test` runs unit tests; `RUN_DB_TESTS=1 node --test test/admin-login.integration.test.js`
+runs HTTP/PostgreSQL tests in a temporary schema that is removed afterward.
+These tests do not modify existing accounts. SMS routes remain commented out.
+
+Role-based authorization, MFA, password reset, and email verification remain
+separate work. Keep Basic Auth credentials out of browser code.
 
 ## Structure
 

@@ -54,4 +54,13 @@ INSERT INTO roles (name, description) VALUES
     ('viewer', 'Read-only administrative access')
 ON CONFLICT (name) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    token_hash CHAR(64) PRIMARY KEY,
+    admin_id BIGINT NOT NULL REFERENCES admin_users(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS admin_sessions_admin_id_idx ON admin_sessions(admin_id);
+CREATE INDEX IF NOT EXISTS admin_sessions_expires_at_idx ON admin_sessions(expires_at);
+
 COMMIT;

@@ -1,3 +1,4 @@
+import { hashPassword, verifyPassword } from '../utils/password.js';
 import { randomBytes } from 'node:crypto';
 import pool from '../config/db.js';
 import provider from './otp.service.js';
@@ -62,31 +63,58 @@ export const verifyOtp = async (phone, otp) => {
 };
 
 export const registerUser = async (name, email, phone, password) => {
-	try {
-		const db = await pool.connect();
+  const passwordHash = await hashPassword(password);
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    const { rows: [role] } = await db.query('SELECT id FROM roles WHERE name = $1', ['admin']);
+    if (!role) throw httpError(500, 'Admin role not configured');
+    const { rows: [admin] } = await db.query(
+      `INSERT INTO admin_users (name, email, phone, password_hash)
+       VALUES ($1, $2, $3, $4) RETURNING id, name, email, phone, status, created_at`,
+      [name, email.trim().toLowerCase(), phone, passwordHash]);
+    await db.query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2)', [admin.id, role.id]);
+    await db.query('COMMIT');
+    return admin;
+  } catch (error) {
+    await db.query('ROLLBACK');
+    if (error.code === '23505') throw httpError(409, 'Email or phone is already registered');
+    throw error;
+  } finally { db.release(); }
+};
 
-		let role_data = await db.query(
-			`select * from roles where name = 'super_admin';`
-		);
-		console.log('Role data:', role_data);
-		if (role_data.rows.length == 0) throw httpError(500, 'Super admin role not found in the database');
-
-		const admin_data = await db.query(`
-			insert into admin_users (name, email, phone, password_hash)
-			values ($1, $2, $3, $4)
-			returning *;
-		`, [name, email, phone, password]
-		);
-
-		await db.query(`
-			insert into user_roles (user_id, role_id)
-			values ($1, $2);
-		`, [admin_data.rows[0].id, role_data.rows[0].id]
-		);
-		db.release();
-		return admin_data.rows[0];
-	} catch (error) {
-		console.log(error);
-		throw new Error(error);
-	}
-}
+export const login = async ({ email, password }) => {
+  const db = await pool.connect();
+  let transaction = false;
+  try {
+    await db.query('BEGIN');
+    transaction = true;
+    const { rows: [admin] } = await db.query(
+      `SELECT *, locked_until > clock_timestamp() AS locked
+       FROM admin_users WHERE email = $1 FOR UPDATE`, [email.trim().toLowerCase()]);
+    const valid = await verifyPassword(password, admin?.password_hash);
+    if (!admin || admin.status !== 'active' || admin.locked || !valid) {
+      if (admin && admin.status === 'active' && !admin.locked && !valid) {
+        await db.query(`UPDATE admin_users SET
+          failed_login_attempts = CASE WHEN locked_until IS NOT NULL THEN 1 ELSE failed_login_attempts + 1 END,
+          locked_until = CASE WHEN (CASE WHEN locked_until IS NOT NULL THEN 1 ELSE failed_login_attempts + 1 END) >= 5
+            THEN clock_timestamp() + INTERVAL '15 minutes' ELSE NULL END WHERE id = $1`, [admin.id]);
+      }
+      await db.query('COMMIT');
+      transaction = false;
+      throw httpError(401, 'Invalid email or password');
+    }
+    const token = randomBytes(32).toString('hex');
+    await db.query(`INSERT INTO admin_sessions (token_hash, admin_id, expires_at)
+      VALUES ($1, $2, clock_timestamp() + INTERVAL '8 hours')`, [hashToken(token), admin.id]);
+    const { rows: [user] } = await db.query(`UPDATE admin_users SET failed_login_attempts = 0,
+      locked_until = NULL, last_login_at = clock_timestamp() WHERE id = $1
+      RETURNING id, name, email, phone, status, last_login_at`, [admin.id]);
+    await db.query('COMMIT');
+    transaction = false;
+    return { token, tokenType: 'Bearer', expiresIn: 28800, user };
+  } catch (error) {
+    if (transaction) await db.query('ROLLBACK');
+    throw error;
+  } finally { db.release(); }
+};

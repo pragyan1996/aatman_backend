@@ -32,3 +32,18 @@ export const register = async (req, res) => {
   let data = await service.registerUser(name, email, phone, password);
   res.status(201).json({ message: 'User registered successfully', user: data });
 };
+
+export const login = async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json(await service.login(req.validated.body));
+};
+
+export const adminMe = (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ user: req.user });
+};
+
+export const adminLogout = async (req, res) => {
+  await pool.query('DELETE FROM admin_sessions WHERE token_hash = $1', [req.tokenHash]);
+  res.status(204).end();
+};
