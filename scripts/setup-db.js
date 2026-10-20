@@ -1,10 +1,10 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const pool = require('../src/config/db');
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import pool from '../src/config/db.js';
 (async () => {
   try {
     for (const file of ['schema.sql', 'postgres/admin-schema.sql']) {
-      const sql = fs.readFileSync(path.join(__dirname, '../database', file), 'utf8');
+      const sql = fs.readFileSync(fileURLToPath(new URL(`../database/${file}`, import.meta.url)), 'utf8');
       await pool.query(sql);
     }
     console.log('Database tables ready.');

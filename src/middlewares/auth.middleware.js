@@ -1,6 +1,6 @@
-const pool = require('../config/db');
-const { hashToken, httpError } = require('../utils/auth');
-module.exports = async (req, res, next) => {
+import pool from '../config/db.js';
+import { hashToken, httpError } from '../utils/auth.js';
+export default async (req, res, next) => {
   try {
     const match = /^Bearer ([a-f0-9]{64})$/.exec(req.get('Authorization') || '');
     if (!match) throw httpError(401, 'A valid Bearer token is required');

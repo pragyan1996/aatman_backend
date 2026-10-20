@@ -1,7 +1,10 @@
-const router = require('express').Router();
-const { getHealth } = require('../controllers/health.controller');
+import authRoutes from './auth.routes.js';
+import { Router } from 'express';
+const router = Router();
+import { getHealth } from '../controllers/health.controller.js';
 
 router.get('/health', getHealth);
-router.use('/auth', require('./auth.routes'));
+router.use('/auth', authRoutes);
 
-module.exports = router;
+
+export default router;

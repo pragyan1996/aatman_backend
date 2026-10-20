@@ -1,8 +1,8 @@
-exports.notFound = (req, res) => {
+export const notFound = (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 };
 
-exports.errorHandler = (error, req, res, next) => {
+export const errorHandler = (error, req, res, next) => {
   if (res.headersSent) return next(error);
 
   const status = error.status || 500;

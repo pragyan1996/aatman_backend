@@ -1,9 +1,9 @@
 // Trusted operator command; intentionally not exposed as a public API.
-const pool = require('../src/config/db');
-const { randomBytes, scrypt: scryptCallback } = require('node:crypto');
-const { promisify } = require('node:util');
-const readline = require('node:readline/promises');
-const { Writable } = require('node:stream');
+import pool from '../src/config/db.js';
+import { randomBytes, scrypt: scryptCallback } from 'node:crypto';
+import { promisify } from 'node:util';
+import readline from 'node:readline/promises';
+import { Writable } from 'node:stream';
 const scrypt = promisify(scryptCallback);
 
 async function main() {

@@ -1,9 +1,9 @@
-const { randomBytes } = require('node:crypto');
-const pool = require('../config/db');
-const provider = require('./otp.service');
-const { httpError, hashToken } = require('../utils/auth');
+import { randomBytes } from 'node:crypto';
+import pool from '../config/db.js';
+import provider from './otp.service.js';
+import { httpError, hashToken } from '../utils/auth.js';
 
-exports.requestOtp = async (phone) => {
+export const requestOtp = async (phone) => {
   const db = await pool.connect();
   try {
     await db.query('BEGIN');
@@ -29,7 +29,7 @@ exports.requestOtp = async (phone) => {
   } finally { db.release(); }
 };
 
-exports.verifyOtp = async (phone, otp) => {
+export const verifyOtp = async (phone, otp) => {
   const db = await pool.connect();
   try {
     await db.query('BEGIN');
@@ -60,3 +60,33 @@ exports.verifyOtp = async (phone, otp) => {
     throw error;
   } finally { db.release(); }
 };
+
+export const registerUser = async (name, email, phone, password) => {
+	try {
+		const db = await pool.connect();
+
+		let role_data = await db.query(
+			`select * from roles where name = 'super_admin';`
+		);
+		console.log('Role data:', role_data);
+		if (role_data.rows.length == 0) throw httpError(500, 'Super admin role not found in the database');
+
+		const admin_data = await db.query(`
+			insert into admin_users (name, email, phone, password_hash)
+			values ($1, $2, $3, $4)
+			returning *;
+		`, [name, email, phone, password]
+		);
+
+		await db.query(`
+			insert into user_roles (user_id, role_id)
+			values ($1, $2);
+		`, [admin_data.rows[0].id, role_data.rows[0].id]
+		);
+		db.release();
+		return admin_data.rows[0];
+	} catch (error) {
+		console.log(error);
+		throw new Error(error);
+	}
+}

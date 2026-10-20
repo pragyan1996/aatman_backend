@@ -1,4 +1,4 @@
-const { httpError } = require('../utils/auth');
+import { httpError } from '../utils/auth.js';
 
 async function callMsg91(path, params, method) {
   if (!process.env.MSG91_AUTH_KEY || !process.env.MSG91_TEMPLATE_ID) {
@@ -21,7 +21,7 @@ async function callMsg91(path, params, method) {
   }
 }
 
-exports.sendOtp = async (phone) => {
+export const sendOtp = async (phone) => {
   const data = await callMsg91('', {
     mobile: phone, template_id: process.env.MSG91_TEMPLATE_ID,
     otp_expiry: '5', otp_length: '6',
@@ -29,8 +29,11 @@ exports.sendOtp = async (phone) => {
   if (data.type !== 'success') throw httpError(502, 'SMS provider could not send the OTP');
 };
 
-exports.verifyOtp = async (phone, otp) => {
+export const verifyOtp = async (phone, otp) => {
   const data = await callMsg91('/verify', { mobile: phone, otp }, 'GET');
   // Do not accept generic success or an already-verified phone response.
   return data.type === 'success' && data.message === 'OTP verified success';
 };
+
+// A shared provider object also allows callers to substitute the SMS provider in tests.
+export default { sendOtp, verifyOtp };

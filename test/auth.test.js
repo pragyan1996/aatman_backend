@@ -1,9 +1,9 @@
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const pool = require('../src/config/db');
-const provider = require('../src/services/otp.service');
-const service = require('../src/services/auth.service');
-const { normalizePhone } = require('../src/utils/auth');
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import pool from '../src/config/db.js';
+import provider from '../src/services/otp.service.js';
+import * as service from '../src/services/auth.service.js';
+import { normalizePhone } from '../src/utils/auth.js';
 
 test('phone validation requires country code format and normalizes plus', () => {
   assert.equal(normalizePhone('+919876543210'), '919876543210');
