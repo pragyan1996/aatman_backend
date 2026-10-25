@@ -110,11 +110,21 @@ export const login = async ({ email, password }) => {
     const { rows: [user] } = await db.query(`UPDATE admin_users SET failed_login_attempts = 0,
       locked_until = NULL, last_login_at = clock_timestamp() WHERE id = $1
       RETURNING id, name, email, phone, status, last_login_at`, [admin.id]);
+
+    const role = await db.query(`select t3.name, t3.description
+        from user_roles t1 
+        join roles t3 on t1.role_id = t3.id
+        join admin_users t2 on t1.user_id = t2.id
+        where t2.id = $1
+      `, [admin.id]);
+    console.log(role);
     await db.query('COMMIT');
     transaction = false;
+    user.role = role.rows;
     return { token, tokenType: 'Bearer', expiresIn: 28800, user };
   } catch (error) {
     if (transaction) await db.query('ROLLBACK');
+    console.log(error);
     throw error;
   } finally { db.release(); }
 };
