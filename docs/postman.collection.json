@@ -1,0 +1,800 @@
+{
+  "info": {
+    "name": "Sports Facility Booking API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Staff JWT API. Set email/password locally. Login stores token. Select future dates within facility hours. See docs/api.md for all filters, lifecycle rules, signed callback setup and legacy API."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "staff_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "date",
+      "value": "2026-12-24",
+      "type": "string"
+    },
+    {
+      "key": "start_at",
+      "value": "2026-12-24T00:30:00Z",
+      "type": "string"
+    },
+    {
+      "key": "end_at",
+      "value": "2026-12-24T01:30:00Z",
+      "type": "string"
+    },
+    {
+      "key": "reschedule_start",
+      "value": "2026-12-25T00:30:00Z",
+      "type": "string"
+    },
+    {
+      "key": "reschedule_end",
+      "value": "2026-12-25T01:30:00Z",
+      "type": "string"
+    },
+    {
+      "key": "booking_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "customer_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "resource_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "sport_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "provider_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_signature",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Operations",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/health",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"token\", pm.response.json().data.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/auth/me"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{base_url}}/api/v1/auth/logout"
+          },
+          "response": []
+        },
+        {
+          "name": "List staff",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/auth/users"
+          },
+          "response": []
+        },
+        {
+          "name": "Create staff",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Reception\",\n  \"email\": \"reception@example.com\",\n  \"password\": \"{{staff_password}}\",\n  \"role\": \"STAFF\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update staff",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/auth/users/{{user_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Facility and customers",
+      "item": [
+        {
+          "name": "List sports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/sports?page=1&limit=25"
+          },
+          "response": []
+        },
+        {
+          "name": "Create sport",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/sports",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Squash\",\n  \"description\": \"Squash courts\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get sport",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/sports/{{sport_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Update sport",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/sports/{{sport_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/resources?page=1&limit=25"
+          },
+          "response": []
+        },
+        {
+          "name": "Create resource",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/resources",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sport_id\": 1,\n  \"name\": \"Additional Court\",\n  \"capacity\": 4,\n  \"booking_type\": \"EXCLUSIVE\",\n  \"price_per_hour\": 400,\n  \"pricing_model\": \"RESOURCE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get resource",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Update resource",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List customers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/customers?page=1&limit=25"
+          },
+          "response": []
+        },
+        {
+          "name": "Create customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/customers",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Rohan Kulkarni\",\n  \"phone\": \"9822041210\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/customers/{{customer_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Update customer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/customers/{{customer_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Updated Customer\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get operating hours",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}/operating-hours"
+          },
+          "response": []
+        },
+        {
+          "name": "Set operating hours",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}/operating-hours",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hours\": [\n    {\n      \"day_of_week\": 0,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 1,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 2,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 3,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 4,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 5,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    },\n    {\n      \"day_of_week\": 6,\n      \"opening_time\": \"06:00\",\n      \"closing_time\": \"23:00\",\n      \"is_closed\": false\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get maintenance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}/unavailability"
+          },
+          "response": []
+        },
+        {
+          "name": "Create maintenance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/resources/{{resource_id}}/unavailability",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_at\": \"{{start_at}}\",\n  \"end_at\": \"{{end_at}}\",\n  \"reason\": \"Maintenance\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer\": {\n    \"name\": \"Rohan Kulkarni\",\n    \"phone\": \"9822041210\"\n  },\n  \"resource_id\": 1,\n  \"start_at\": \"{{start_at}}\",\n  \"end_at\": \"{{end_at}}\",\n  \"participants\": 1,\n  \"booking_source\": \"DESK\",\n  \"payment_option\": \"PAY_AT_DESK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"booking_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/bookings?date={{date}}&page=1&limit=25&sort=start_at&sort_order=asc"
+          },
+          "response": []
+        },
+        {
+          "name": "Booking detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Edit notes",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Arriving early\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/cancel",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer request\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reschedule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/reschedule",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"start_at\": \"{{reschedule_start}}\",\n  \"end_at\": \"{{reschedule_end}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Audit history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/events"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Availability and dashboard",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/bookings/summary?date={{date}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/availability?date={{date}}&duration_minutes=60&participants=1"
+          },
+          "response": []
+        },
+        {
+          "name": "Schedule",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/schedule?date={{date}}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Desk payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/payments",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 200,\n  \"method\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Payment history",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/payments"
+          },
+          "response": []
+        },
+        {
+          "name": "Full desk refund",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/bookings/{{booking_id}}/refunds",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_id\": 1,\n  \"transaction_reference\": \"{{$guid}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Online initiation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/payments/online",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_id\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mock captured callback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Mock-Event-Id",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "X-Mock-Signature",
+                "value": "{{webhook_signature}}"
+              }
+            ],
+            "url": "{{base_url}}/api/v1/webhooks/payments",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"payment.captured\",\n  \"payload\": {\n    \"payment\": {\n      \"entity\": {\n        \"id\": \"mock_payment_1\",\n        \"order_id\": \"{{provider_order_id}}\",\n        \"amount\": 40000,\n        \"currency\": \"INR\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Calculate HMAC-SHA256 of the exact raw body using MOCK_WEBHOOK_SECRET. Supply the hex signature as webhook_signature. Never enable mock in production."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

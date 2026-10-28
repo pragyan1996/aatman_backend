@@ -30,7 +30,7 @@ test('admin registration and login HTTP flow', { skip: !process.env.RUN_DB_TESTS
     await pool.query(await readFile(new URL('../database/postgres/admin-schema.sql', import.meta.url), 'utf8'));
     server = app.listen(0, '127.0.0.1');
     await new Promise((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
-    base = `http://127.0.0.1:${server.address().port}/api/v1/auth`;
+    base = `http://127.0.0.1:${server.address().port}/api/v1/legacy/auth`;
     await t.test('registration stores hash and returns safe fields; duplicate returns 409', async () => {
       const result = await request('/register', { body: payload });
       assert.equal(result.status, 201);

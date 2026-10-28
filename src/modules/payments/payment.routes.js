@@ -1,0 +1,12 @@
+import { Router } from "express";
+import { validate, params } from "../common.js";
+import { authenticate, admin } from "../auth/auth.service.js";
+import * as v from "./payment.validation.js";
+import * as c from "./payment.controller.js";
+const r = Router();
+r.use(authenticate);
+r.get("/bookings/:id/payments", params, c.list);
+r.post("/bookings/:id/payments", params, validate(v.desk), c.desk);
+r.post("/bookings/:id/refunds", admin, params, validate(v.refund), c.refund);
+r.post("/payments/online", validate(v.online), c.online);
+export default r;

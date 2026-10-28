@@ -117,14 +117,12 @@ export const login = async ({ email, password }) => {
         join admin_users t2 on t1.user_id = t2.id
         where t2.id = $1
       `, [admin.id]);
-    console.log(role);
     await db.query('COMMIT');
     transaction = false;
     user.role = role.rows;
     return { token, tokenType: 'Bearer', expiresIn: 28800, user };
   } catch (error) {
     if (transaction) await db.query('ROLLBACK');
-    console.log(error);
     throw error;
   } finally { db.release(); }
 };

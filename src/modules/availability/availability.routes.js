@@ -1,0 +1,10 @@
+import { Router } from "express";
+import { validate } from "../common.js";
+import { authenticate } from "../auth/auth.service.js";
+import * as v from "./availability.validation.js";
+import * as c from "./availability.controller.js";
+const r = Router();
+r.use(authenticate);
+r.get("/availability", validate(v.availability, "query"), c.availability);
+r.get("/schedule", validate(v.schedule, "query"), c.schedule);
+export default r;

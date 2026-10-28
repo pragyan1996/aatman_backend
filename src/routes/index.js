@@ -1,10 +1,6 @@
-import authRoutes from './auth.routes.js';
-import { Router } from 'express';
+// The complete API is registered in app.js; retained for legacy imports.
+import { Router } from "express";
+import bookingRoutes from "./booking.routes.js";
 const router = Router();
-import { getHealth } from '../controllers/health.controller.js';
-
-router.get('/health', getHealth);
-router.use('/auth', authRoutes);
-
-
+router.use("/bookings", bookingRoutes);
 export default router;

@@ -1,127 +1,53 @@
-# Aatman API
+# Sports facility booking API
 
-Basic Express API backend. Requires Node.js 20 or newer.
+Node.js ES modules, Express 5 and PostgreSQL backend for staff bookings, resource availability, customer management and verified payments. Supports exclusive courts and shared-capacity facilities, timezone-aware operating hours, maintenance, temporary holds, financial/audit history, filtering and dashboards.
 
-```sh
-npm install
-npm start
-```
+## Setup
 
-For development with automatic restarts, run `npm run dev`.
-
-The server listens on **http://localhost:3002**.
-
-- `GET /api/health` — API health check
-
-## PostgreSQL admin accounts
-
-All database access uses PostgreSQL database **aatman**. Admin password login
-is available at `POST /api/v1/auth/login`.
-
-1. Install/start PostgreSQL and create the database once: `createdb -U postgres aatman`.
-2. Set `PGHOST`, `PGPORT`, `PGDATABASE=aatman`, `PGUSER`, and `PGPASSWORD` in `.env`
-   for the registration command. For `psql`, export those variables into your shell
-   or use your PostgreSQL password file; `psql` does not read `.env`.
-3. Run `npm run db:setup` to create both SMS authentication and admin tables.
-4. Run `npm install`, then `node scripts/register-admin.js` in an interactive terminal.
-   Enter email, phone with country code, name, role, and password. Choose `super_admin`
-   for the first administrator. The default role is `admin`.
-
-Registration inserts the administrator and role assignment in one transaction using
-parameterized queries. Passwords are stored as salted scrypt hashes with their cost
-parameters; the password is hidden during entry. This command is for trusted operators.
-Keep public admin self-registration disabled. No default account or password is seeded.
-
-The schema provides `admin_users`, `roles`, and `user_roles` (multiple roles per user).
-Email and phone are unique, email is normalized to lowercase, and timestamps include
-time zones. Accounts include status, verification timestamps, password-change time,
-failed-login count, temporary lock expiry, and last-login time. Verification timestamps
-start empty. `assigned_by` may be null for operator-created accounts.
-
-### Admin API
-
-Configure `BASIC_AUTH_USERNAME` and `BASIC_AUTH_PASSWORD` in `.env`.
-Registration and login require HTTP Basic Auth over HTTPS in deployment.
-
-- `POST /api/v1/auth/register`: JSON `name`, `email`, `phone` (with country code),
-  `password` (12–128 characters). Creates an `admin`, not a `super_admin`.
-- `POST /api/v1/auth/login`: JSON `email`, `password`. Returns `token`,
-  `tokenType: "Bearer"`, `expiresIn: 28800`, and safe `user` fields.
-- `GET /api/v1/auth/me`: use `Authorization: Bearer <token>`.
-- `POST /api/v1/auth/logout`: same Bearer header; revokes the session, returns 204.
-
-Login permits 20 requests per IP per 15 minutes. Five incorrect passwords lock
-an account for 15 minutes. Invalid, disabled, locked, and unknown accounts return
-the same 401 message. Only token hashes are stored. Sessions expire after eight
-hours and are invalid after an account is disabled or its password-change timestamp
-advances. Registration uses a transaction, stores scrypt hashes, and returns 409
-for duplicate email or phone. Previously stored plaintext passwords are rejected;
-those accounts need a trusted password reset or recreation.
-
-Run `npm run db:setup` to add `admin_sessions` to an existing installation.
-`npm test` runs unit tests; `RUN_DB_TESTS=1 node --test test/admin-login.integration.test.js`
-runs HTTP/PostgreSQL tests in a temporary schema that is removed afterward.
-These tests do not modify existing accounts. SMS routes remain commented out.
-
-Role-based authorization, MFA, password reset, and email verification remain
-separate work. Keep Basic Auth credentials out of browser code.
-
-## Structure
-
-```text
-server.js              # Starts the HTTP server
-src/
-  app.js               # Express setup and middleware
-  config/              # Application configuration
-  controllers/         # Request handlers
-  middlewares/         # Error handling and other middleware
-  models/              # Database models
-  routes/              # API route definitions
-  services/            # Business logic
-  utils/               # Shared helpers
-```
-
-## SMS login and PostgreSQL
-
-1. Install/start PostgreSQL and create `aatman` as described above.
-2. Copy `.env.example` to `.env` and configure the `PG*` connection variables.
-   Defaults are database `aatman`, user `postgres`, host `127.0.0.1`, port `5432`.
-   Use a dedicated, restricted PostgreSQL account when deploying.
-3. In MSG91, create an approved **OTP** template and add its template ID and auth key
-   to `.env`. Complete sender/DLT registration as required. Use a six-digit OTP template.
-4. Run `npm install`, `npm run db:setup`, then `npm start`. Setup creates tables in
-   the existing database; it does not create the database itself.
-
-MSG91 API references: https://docs.msg91.com/otp and https://msg91.com/help/hello-contact-center/chatbots-in-hello/msg91-bot/utility/script-use-cases
-
-### Try the endpoints
-
-Replace the example phone with your own number including country code. Requesting an OTP sends a real SMS and may incur provider charges.
+Requires Node.js 22.12+ and PostgreSQL 14+ with `btree_gist` extension permission.
 
 ```sh
-curl -X POST http://localhost:3002/api/auth/request-otp \
-  -H 'Content-Type: application/json' \
-  -d '{"phone":"+919876543210"}'
-
-curl -X POST http://localhost:3002/api/auth/verify-otp \
-  -H 'Content-Type: application/json' \
-  -d '{"phone":"+919876543210","otp":"123456"}'
+npm ci
+cp .env.example .env
+# Configure DATABASE_URL, JWT_SECRET (32+ random characters), ADMIN_EMAIL,
+# ADMIN_PASSWORD (12+ characters), and MOCK_WEBHOOK_SECRET for local use.
+# Create the database with your PostgreSQL administrator, for example:
+createdb aatman
+npm run db:migrate
+npm run db:seed
+npm run dev
 ```
 
-Successful verification creates the user on first login and returns `token`, `expiresIn`, and `user`. Subsequent logins use the same phone record. No password is needed. Users are created only after successful OTP verification.
+Generate a secret with `openssl rand -hex 32`. No credentials are hardcoded. Seed commands never reset an existing admin password. Set SEED_DEMO=true for repeatable sample bookings/payments. PORT defaults to 3002. `npm start` starts the server and hold-expiration worker; `/api/v1/health` verifies connectivity. SIGINT/SIGTERM shuts down gracefully. Existing legacy public-schema data is preserved; legacy authentication is available at `/api/v1/legacy/auth` after its separate original setup (`npm run db:setup`). New JWT accounts live in `facility.users`.
+
+## Tests
 
 ```sh
-curl http://localhost:3002/api/auth/me -H 'Authorization: Bearer YOUR_TOKEN'
-
-curl -X PATCH http://localhost:3002/api/auth/me \
-  -H 'Authorization: Bearer YOUR_TOKEN' -H 'Content-Type: application/json' \
-  -d '{"name":"Your Name"}'
-
-curl -X POST http://localhost:3002/api/auth/logout -H 'Authorization: Bearer YOUR_TOKEN'
+npm run test:unit
+createdb aatman_test
+TEST_DATABASE_URL=postgresql://localhost/aatman_test npm test
 ```
 
-OTP challenges expire after five minutes, allow five verification attempts, and enforce a 60-second resend cooldown. MSG91 stores/verifies the actual OTP; this application does not store plaintext OTPs. Request and verification endpoints also have per-IP limits. Local challenge rows are locked during verification to prevent concurrent reuse. If delivery fails, request a fresh code after the cooldown. If verification succeeds at MSG91 but the database transaction fails, request a fresh code rather than retrying the consumed code.
+The test database name must end in `_test`. Integration tests **reset the facility schema in that database**; use a dedicated disposable database. With no TEST_DATABASE_URL, `npm test` runs unit/pure tests and explicitly skips database integration tests. It does not silently connect to the normal database for integration setup. The optional legacy HTTP suite runs separately against another dedicated test database using `RUN_DB_TESTS=1 DATABASE_URL=... npm run test:unit`; it creates/removes its own random legacy schema.
 
-Sessions last seven days; only SHA-256 token hashes are stored. Logout revokes the current session. Use HTTPS when deploying and store the returned token securely. IP limits use process memory; use a shared rate-limit store and configure trusted proxies explicitly if deploying multiple instances or behind a proxy. Periodically remove expired session rows.
+The Vitest/Supertest suite exercises login/roles/logout, customer normalization, transactional bookings, eight simultaneous exclusive requests, database exclusion enforcement, shared occupancy, concurrent shared bookings and reschedules, retry keys, cancellations, partial/full payments/refunds, signed online callbacks and duplicates, hold expiration, late captures, maintenance, validation, filters, dashboard and timezone boundaries. The original node:test unit suites are retained.
 
-Run `npm test` for isolated auth logic checks. Actual database connectivity and SMS delivery require your local configuration.
+## API and design
+
+All staff APIs use `/api/v1` with standard success/error envelopes. JWT Bearer access lasts eight hours; logout revokes its JTI. ADMIN configures sports/resources/hours/maintenance and staff; STAFF operates customers/bookings/payments. ONLINE is a booking source, not a public customer login system.
+
+- [API reference and cURL examples](docs/api.md)
+- [Database tables and migration rules](docs/database.md)
+- [Architecture, locking and financial lifecycle](docs/architecture.md)
+- [Importable Postman collection](docs/postman.collection.json)
+- [Implementation phases](docs/implementation-plan.md)
+
+Money is returned as decimal strings. Pricing uses the resource's hourly rate and RESOURCE/PARTICIPANT model, rounded to paise with Decimal.js. Booking creation/rescheduling checks operating hours, maintenance and maximum concurrent occupancy while holding resource locks. An exclusion constraint additionally prevents exclusive overlap. Bookings retain their historical price and are never deleted on cancellation. Refund debit records reduce net collections.
+
+## Online payments and deployment
+
+Local development uses an explicitly identified mock provider and signed simulated callbacks. Production requires Razorpay keys, a webhook secret and PAYMENT_PROVIDER=razorpay. See the API reference for exact callback setup. Never use mock records as real financial evidence. Real merchant credentials were unavailable; external Razorpay checkout/delivery must be validated in merchant test mode before launch.
+
+Full refunds are supported; partial refunds require manual reconciliation. Late captures do not resurrect expired/cancelled reservations: they generate audit events requiring a provider refund. Provider refunds are initiated through the merchant dashboard, then reconciled by signed webhooks. Provider/network failures can leave orphan orders and need reconciliation. Same-day operating hours are supported; overnight shifts are outside this version. The API does not automatically transition elapsed confirmed reservations to COMPLETED.
+
+Set exact CORS_ORIGINS, protect database credentials, terminate HTTPS at deployment infrastructure, and configure backups. Global and login rate limits are per process. Multi-instance deployments need a shared rate-limit store and an explicitly configured proxy policy. Production logs exclude payloads and secrets. Run migrations before starting the server.
